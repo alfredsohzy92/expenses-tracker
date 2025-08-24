@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Expense Tracker v2 - Daily Budget</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <header class="bg-white border-b">
+    <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+      <h1 class="text-2xl font-bold">Expense Tracker + Daily Budget</h1>
+      <div class="flex gap-2">
+        <button id="exportBtn" class="px-3 py-2 rounded-xl bg-slate-800 text-white hover:bg-slate-900">Export JSON</button>
+        <label class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 cursor-pointer">
+          <input id="importFile" type="file" accept="application/json" class="hidden">Import JSON
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <main class="container mx-auto px-4 py-6">
+    <!-- Budget Settings -->
+    <section class="bg-white rounded-2xl shadow p-4 mb-6">
+      <h2 class="text-lg font-semibold mb-3">Budget Settings</h2>
+      <form id="budgetForm" class="grid sm:grid-cols-4 gap-3 items-end">
+        <div>
+          <label for="dailyBudget" class="block text-sm font-medium">Daily Budget (SGD)</label>
+          <input id="dailyBudget" type="number" step="0.01" min="0" class="mt-1 w-full rounded-xl border-gray-300" required>
+        </div>
+        <div>
+          <label for="startDate" class="block text-sm font-medium">Start Date</label>
+          <input id="startDate" type="date" class="mt-1 w-full rounded-xl border-gray-300" required>
+        </div>
+        <div>
+          <label for="endDate" class="block text-sm font-medium">End Date</label>
+          <input id="endDate" type="date" class="mt-1 w-full rounded-xl border-gray-300" required>
+        </div>
+        <div>
+          <button class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700" type="submit">Save</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Add Expense -->
+    <section class="bg-white rounded-2xl shadow p-4 mb-6">
+      <h2 class="text-lg font-semibold mb-3">Add expense</h2>
+      <form id="expenseForm" class="grid sm:grid-cols-5 gap-3 items-end">
+        <div>
+          <label for="date" class="block text-sm font-medium">Date</label>
+          <input id="date" name="date" type="date" class="mt-1 w-full rounded-xl border-gray-300" required>
+        </div>
+        <div>
+          <label for="category" class="block text-sm font-medium">Category</label>
+          <select id="category" name="category" class="mt-1 w-full rounded-xl border-gray-300" required>
+            <option>Food</option>
+            <option>Transport</option>
+            <option>Groceries</option>
+            <option>Bills</option>
+            <option>Shopping</option>
+            <option>Entertainment</option>
+            <option>Health</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label for="amount" class="block text-sm font-medium">Amount (SGD)</label>
+          <input id="amount" name="amount" type="number" step="0.01" min="0" class="mt-1 w-full rounded-xl border-gray-300" placeholder="0.00" required>
+        </div>
+        <div class="sm:col-span-2">
+          <label for="note" class="block text-sm font-medium">Note</label>
+          <input id="note" name="note" type="text" class="mt-1 w-full rounded-xl border-gray-300" placeholder="e.g. Lunch at hawker">
+        </div>
+        <div class="sm:col-span-5">
+          <button class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700" type="submit">Add</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Summary -->
+    <section class="grid md:grid-cols-3 gap-4 mb-6">
+      <div class="bg-white rounded-2xl shadow p-4 md:col-span-1">
+        <h2 class="text-lg font-semibold mb-3">Summary</h2>
+        <dl class="grid gap-3 text-sm">
+          <div class="p-3 rounded-xl bg-slate-50">
+            <dt class="text-slate-500">Accumulated Allowance</dt>
+            <dd id="accAllowance" class="text-xl font-bold">$0.00</dd>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50">
+            <dt class="text-slate-500">Total Spent</dt>
+            <dd id="sumAll" class="text-xl font-bold">$0.00</dd>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50">
+            <dt class="text-slate-500">Remaining Balance</dt>
+            <dd id="remaining" class="text-xl font-bold">$0.00</dd>
+          </div>
+        </dl>
+        <div class="mt-4">
+          <div class="flex justify-between text-sm mb-1">
+            <span>Progress</span>
+            <span id="progressText">0%</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-4">
+            <div id="progressBar" class="bg-blue-600 h-4 rounded-full" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl shadow p-4 md:col-span-2">
+        <h2 class="text-lg font-semibold mb-3">Transactions</h2>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm" id="txTable">
+            <thead>
+              <tr class="bg-slate-100 text-left">
+                <th class="p-3">Date</th>
+                <th class="p-3">Category</th>
+                <th class="p-3">Note</th>
+                <th class="p-3 text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody id="txBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <p class="mt-6 text-xs text-slate-500">
+      Data is stored locally in your browser (localStorage). Export/Import to backup.
+    </p>
+  </main>
+
+  <script>
+    const STORAGE_KEY = 'expense-tracker-v2';
+    function loadData() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) ?? { tx:[], budget:null }; } catch { return { tx:[], budget:null }; } }
+    function saveData(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+    let state = loadData();
+    const fmt = new Intl.NumberFormat('en-SG', { style:'currency', currency:'SGD' });
+
+    const budgetForm = document.getElementById('budgetForm');
+    const dailyBudgetEl = document.getElementById('dailyBudget');
+    const startDateEl = document.getElementById('startDate');
+    const endDateEl = document.getElementById('endDate');
+
+    const expenseForm = document.getElementById('expenseForm');
+    const dateEl = document.getElementById('date');
+    const catEl = document.getElementById('category');
+    const amtEl = document.getElementById('amount');
+    const noteEl = document.getElementById('note');
+    const tbody = document.getElementById('txBody');
+
+    const accAllowanceEl = document.getElementById('accAllowance');
+    const sumAllEl = document.getElementById('sumAll');
+    const remainingEl = document.getElementById('remaining');
+    const progressText = document.getElementById('progressText');
+    const progressBar = document.getElementById('progressBar');
+
+    const exportBtn = document.getElementById('exportBtn');
+    const importFile = document.getElementById('importFile');
+
+    budgetForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      state.budget = {
+        daily: Number(dailyBudgetEl.value||0),
+        start: startDateEl.value,
+        end: endDateEl.value
+      };
+      saveData(state);
+      rerender();
+    });
+
+    expenseForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const record = {
+        id: crypto.randomUUID(),
+        date: dateEl.value,
+        category: catEl.value,
+        amount: Number(amtEl.value||0),
+        note: noteEl.value.trim()
+      };
+      if (!record.date || record.amount<=0) return;
+      state.tx.push(record);
+      saveData(state);
+      expenseForm.reset();
+      dateEl.valueAsDate = new Date();
+      rerender();
+    });
+
+    function renderTable(){
+      const rows = state.tx.sort((a,b)=> new Date(b.date)-new Date(a.date))
+        .map(r=>`<tr class="border-b last:border-0"><td class="p-3">${r.date}</td><td class="p-3">${r.category}</td><td class="p-3">${r.note||''}</td><td class="p-3 text-right">${fmt.format(r.amount)}</td></tr>`).join('');
+      tbody.innerHTML = rows || `<tr><td colspan=4 class="p-6 text-center text-slate-500">No transactions</td></tr>`;
+    }
+
+    function renderSummary(){
+      const spent = state.tx.reduce((s,r)=>s+r.amount,0);
+      let allowance = 0;
+      if(state.budget){
+        const start = new Date(state.budget.start);
+        const end = new Date(state.budget.end);
+        const now = new Date();
+        const today = now < end ? now : end;
+        const days = Math.floor((today-start)/(1000*60*60*24))+1;
+        allowance = days*state.budget.daily;
+      }
+      accAllowanceEl.textContent = fmt.format(allowance);
+      sumAllEl.textContent = fmt.format(spent);
+      const remaining = allowance-spent;
+      remainingEl.textContent = fmt.format(remaining);
+
+      // Progress bar
+      let percent = allowance>0 ? Math.min(100, Math.round((spent/allowance)*100)) : 0;
+      progressText.textContent = percent+"%";
+      progressBar.style.width = percent+"%";
+    }
+
+    function rerender(){
+      renderTable();
+      renderSummary();
+    }
+
+    exportBtn.addEventListener('click',()=>{
+      const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download=`expenses-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    importFile.addEventListener('change',async(e)=>{
+      const file=e.target.files?.[0];
+      if(!file) return;
+      const text=await file.text();
+      try{
+        const obj=JSON.parse(text);
+        if(!obj.tx||!Array.isArray(obj.tx)) throw new Error('Invalid file');
+        state=obj;
+        saveData(state);
+        rerender();
+      }catch(err){ alert('Import failed: '+err.message); }
+      finally{ importFile.value=''; }
+    });
+
+    // preload form values if budget exists
+    if(state.budget){
+      dailyBudgetEl.value=state.budget.daily;
+      startDateEl.value=state.budget.start;
+      endDateEl.value=state.budget.end;
+    }
+
+    dateEl.valueAsDate=new Date();
+    rerender();
+  </script>
+</body>
+</html>
